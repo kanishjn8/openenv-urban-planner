@@ -16,7 +16,7 @@ from typing import Any
 
 import numpy as np
 
-from openenv_urban_planner.models import CollapseReport, EpisodeConfig, ZoneCell
+from models import CollapseReport, EpisodeConfig, ZoneCell
 
 
 # ── Constants ────────────────────────────────────────────────────────────────

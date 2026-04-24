@@ -10,8 +10,8 @@
 
 from openenv.core.env_server import create_app
 
-from openenv_urban_planner.models import UrbanPlannerAction, UrbanPlannerObservation
-from openenv_urban_planner.server.urban_planner_environment import UrbanPlannerEnvironment
+from models import UrbanPlannerAction, UrbanPlannerObservation
+from server.urban_planner_environment import UrbanPlannerEnvironment
 
 # Create the OpenEnv-compliant FastAPI app.
 # This registers the /reset, /step, /state, /close HTTP endpoints and

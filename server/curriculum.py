@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import random
 
-from openenv_urban_planner.models import EpisodeConfig
+from models import EpisodeConfig
 
 
 class CurriculumManager:

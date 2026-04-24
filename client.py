@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from openenv.core.mcp_client import MCPToolClient
 
-from openenv_urban_planner.models import (
+from models import (
     UrbanPlannerAction,
     UrbanPlannerObservation,
 )
