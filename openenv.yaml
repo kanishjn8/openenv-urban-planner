@@ -1,0 +1,20 @@
+# =============================================================================
+# OpenEnv Manifest — OpenEnv Urban Planner
+# Spec version 1 compliant. Runtime = docker, type = mcp (MCPEnvironment).
+# =============================================================================
+
+spec_version: 1
+name: openenv-urban-planner
+type: mcp
+runtime: docker
+app: openenv_urban_planner/server/app.py
+port: 8000
+description: >
+  Urban planning simulation for training LLMs on long-horizon spatial
+  reasoning. Agent places zoning and infrastructure across a 16x16 grid
+  city under resource constraints with cascading physical consequences.
+tags:
+  - long-horizon
+  - world-modeling
+  - spatial-reasoning
+  - urban-planning

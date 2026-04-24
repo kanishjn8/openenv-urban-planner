@@ -1,0 +1,66 @@
+# Repository-level .gitignore for openenv-urban-planner
+# See: https://github.com/github/gitignore for templates
+
+## Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+
+# Distribution / packaging
+build/
+dist/
+eggs/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+*.whl
+
+# Cache, test, coverage
+.pytest_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints
+
+# Logs
+*.log
+
+# Runtime files
+*.pid
+*.seed
+
+# Project-specific: auto-generated collapse reports
+openenv_urban_planner/assets/collapse_cases/
+
+# Optional env files
+.env
+.env.*
+
+# Docker
+docker-compose.override.yml
+
+plan.md
