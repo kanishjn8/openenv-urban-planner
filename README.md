@@ -1,3 +1,12 @@
+---
+title: OpenEnv Urban Planner
+emoji: 🏙️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # OpenEnv Urban Planner 🏙️
 
 > An OpenEnv environment for training LLMs on long-horizon urban planning
@@ -66,7 +75,7 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv sync
 
 # Run server locally
-uv run uvicorn openenv_urban_planner.server.app:app --host 0.0.0.0 --port 8000
+uv run uvicorn server.app:app --host 0.0.0.0 --port 8000
 
 # Run tests
 uv run pytest tests/ -q
