@@ -64,3 +64,4 @@ openenv_urban_planner/assets/collapse_cases/
 docker-compose.override.yml
 
 plan.md
+/scripts/
