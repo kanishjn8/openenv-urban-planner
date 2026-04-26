@@ -211,8 +211,8 @@ The qualitative behavior is the satisfying part. The trained model:
 ## 7 · Try it yourself
 
 - 🤗 **HF Space:** [huggingface.co/spaces/kanishjn8/openenv-urban-planner](https://huggingface.co/spaces/kanishjn8/openenv-urban-planner)
-- 📓 **Colab notebook:** `[notebooks/train_grpo.ipynb](./notebooks/train_grpo.ipynb)` - open in Colab, set runtime to T4 GPU, Run All.
-- 📁 **Code:** see `[server/](./server)`, `[models.py](./models.py)`, and `[client.py](./client.py)` in this repo.
+- 📓 **Colab notebook:** [notebooks/train_grpo.ipynb](./notebooks/train_grpo.ipynb) - open in Colab, set runtime to T4 GPU, Run All.
+- 📁 **Code:** see [server](./server), [models.py](./models.py), and [client.py](./client.py) in this repo.
 
 We deliberately kept the environment self-contained (pure Python + numpy, no external services) so it's easy to fork and modify. If you build a new sub-rubric or cascade rule we'd love to see it.
 
