@@ -33,12 +33,18 @@ class ConnectivityRubric(Rubric):
 
     Score = connected_residential / total_residential
 
-    Uses BFS from every commercial cell that has a road, traversing only
-    road-connected cells, and marks which residential cells are reached.
+    Implementation: BFS from every commercial cell that has a road,
+    traversing ONLY through cells that themselves have a road.  A residential
+    cell is "connected" iff at least one of its 4-neighbors is on this road
+    network (i.e. it has direct road access).
+
+    BUG-FIX #3: previous implementation let residential cells act as bridge
+    nodes during BFS.  That meant a chain of residential cells with NO roads
+    counted as connected, which let an agent score 0.25 of total reward by
+    spamming residential alone — completely defeating the metric.
     """
 
     def score(self, sim: CitySimulation) -> float:
-        # Gather residential and commercial cells
         residential_keys: set[str] = set()
         commercial_with_road: list[tuple[int, int]] = []
 
@@ -53,27 +59,41 @@ class ConnectivityRubric(Rubric):
 
         if not residential_keys:
             return 1.0  # no residential → trivially connected
+        if not commercial_with_road:
+            return 0.0  # no commercial-with-road source → nothing reachable
 
-        # BFS from all commercial road cells through the road network
-        visited: set[str] = set()
+        # BFS through the road network only
+        road_visited: set[str] = set()
         queue: list[tuple[int, int]] = list(commercial_with_road)
         for r, c in queue:
-            visited.add(sim._cell_key(r, c))
+            road_visited.add(sim._cell_key(r, c))
 
         while queue:
             r, c = queue.pop(0)
             for nr, nc in sim._neighbors(r, c):
                 nkey = sim._cell_key(nr, nc)
-                if nkey in visited:
+                if nkey in road_visited:
                     continue
                 ncell = sim.grid[nkey]
-                # Can traverse if cell has a road or is a residential endpoint
-                if "road" in ncell.infrastructure or ncell.zone_type == "residential":
-                    visited.add(nkey)
+                # Strict: traverse ONLY through road cells
+                if "road" in ncell.infrastructure:
+                    road_visited.add(nkey)
                     queue.append((nr, nc))
 
-        connected = residential_keys & visited
-        return len(connected) / len(residential_keys)
+        # A residential cell is "connected" iff any of its neighbors is on
+        # the road network (or it itself has a road).
+        connected = 0
+        for rkey in residential_keys:
+            r, c = (int(x) for x in rkey.split("_"))
+            if "road" in sim.grid[rkey].infrastructure and rkey in road_visited:
+                connected += 1
+                continue
+            for nr, nc in sim._neighbors(r, c):
+                if sim._cell_key(nr, nc) in road_visited:
+                    connected += 1
+                    break
+
+        return connected / len(residential_keys)
 
 
 # ── Sub-rubric 2: Resident Welfare ──────────────────────────────────────────
@@ -148,8 +168,18 @@ class BudgetEfficiencyRubric(Rubric):
     """
     Reward for achieving welfare gains without overspending.
 
-    Score = welfare_score / (initial_budget - remaining_budget + 1)
-    Normalized to 0–1 range.
+    Formal definition:
+      spent = max(0, initial_budget - current_budget)
+      score = welfare / (1 + spent / initial_budget)
+
+    Bounded to [0, 1].  An untouched budget gives full welfare credit; spending
+    the whole budget halves it.  Negative budget (over-draft) is clamped.
+
+    BUG-FIX #2: previous implementation used `initial_population * 10` as the
+    spend baseline (a leftover proxy from an earlier version).  That made
+    efficiency depend on **population size** rather than **budget consumed**,
+    which is the wrong semantics.  We now use the actual `initial_budget`
+    recorded by the simulation at reset.
     """
 
     def __init__(self) -> None:
@@ -157,12 +187,10 @@ class BudgetEfficiencyRubric(Rubric):
 
     def score(self, sim: CitySimulation) -> float:
         welfare = self._welfare.score(sim)
-        spent = max(sim.initial_population, 1)  # proxy: use initial_pop as normalizer
-        # Use actual budget spend
-        budget_spent = max(1, (sim.initial_population * 10) - sim.budget + 1)
-        # Normalize: high welfare with low spend → high score
-        raw = welfare / (1.0 + budget_spent / 10000.0)
-        return min(1.0, raw)
+        initial_budget = max(1, getattr(sim, "initial_budget", 10000) or 10000)
+        spent = max(0, initial_budget - sim.budget)
+        raw = welfare / (1.0 + spent / initial_budget)
+        return float(max(0.0, min(1.0, raw)))
 
 
 # ── Sub-rubric 5: Long-Horizon Coherence ────────────────────────────────────
@@ -174,16 +202,23 @@ class LongHorizonCoherenceRubric(Rubric):
 
     Score = 1 - (contradiction_count / max(total_placements, 1))
 
-    Contradiction rules (adjacency constraints):
-      - industrial adjacent to school → contradiction
-      - industrial adjacent to residential (no green buffer) → contradiction
-      - high-density residential with no road access → contradiction
+    Contradiction rules:
+      A. industrial adjacent to a cell with a school → contradiction (per-edge)
+      B. industrial adjacent to residential without a green buffer → contradiction (per-edge)
+      C. high-density residential with no road access (at the cell itself or
+         any neighbor) → contradiction (per-cell)
+
+    BUG-FIX #5: rule C used a fragile dedup trick — `if (nr,nc) == _neighbors(r,c)[0]`
+    inside the inner neighbor loop — which only worked while `_neighbors`
+    returned a stable order and never skipped boundaries.  We now evaluate
+    rule C once per cell, outside the inner loop, where it semantically
+    belongs.
     """
 
-    # Adjacency pairs that count as contradictions
+    # Adjacency pairs that count as contradictions (kept for reference / tests)
     CONTRADICTION_RULES: list[tuple[str, str]] = [
-        ("industrial", "school"),      # industrial cell next to cell with school
-        ("industrial", "residential"), # industrial next to residential (no buffer)
+        ("industrial", "school"),
+        ("industrial", "residential"),
     ]
 
     def score(self, sim: CitySimulation) -> float:
@@ -199,38 +234,39 @@ class LongHorizonCoherenceRubric(Rubric):
                     continue
                 total_placements += 1
 
+                # Rule C — per-cell, evaluated exactly once.
+                # A high-density residential cell needs *some* road access:
+                # either on the cell itself or on one of its 4-neighbors.
+                if cell.zone_type == "residential" and cell.density >= 3:
+                    has_road_access = "road" in cell.infrastructure or any(
+                        "road" in sim.grid[sim._cell_key(nr, nc)].infrastructure
+                        for nr, nc in sim._neighbors(r, c)
+                    )
+                    if not has_road_access:
+                        contradictions += 1
+
+                # Rules A & B — per neighbor.
                 for nr, nc in sim._neighbors(r, c):
                     nkey = sim._cell_key(nr, nc)
                     ncell = sim.grid[nkey]
 
-                    # Check industrial-school contradiction
+                    # A: industrial adjacent to school
                     if (
                         cell.zone_type == "industrial"
                         and "school" in ncell.infrastructure
                     ):
                         contradictions += 1
 
-                    # Check industrial-residential without green buffer
+                    # B: industrial adjacent to residential without green buffer
                     if (
                         cell.zone_type == "industrial"
                         and ncell.zone_type == "residential"
                     ):
-                        # Check if any neighbor of the residential cell is green
                         has_buffer = any(
                             sim.grid[sim._cell_key(br, bc)].zone_type == "green"
                             for br, bc in sim._neighbors(nr, nc)
                         )
                         if not has_buffer:
-                            contradictions += 1
-
-                    # High-density residential without road
-                    if (
-                        cell.zone_type == "residential"
-                        and cell.density >= 3
-                        and "road" not in cell.infrastructure
-                    ):
-                        # Only count once per cell, not per neighbor
-                        if (nr, nc) == sim._neighbors(r, c)[0]:
                             contradictions += 1
 
         if total_placements == 0:

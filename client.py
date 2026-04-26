@@ -21,7 +21,10 @@ from __future__ import annotations
 
 from openenv.core.mcp_client import MCPToolClient
 
-from models import (
+# Relative import so the client works whether the package is loaded as
+# `openenv_urban_planner.client` (library form) or via direct project-root
+# sys.path injection (training scripts).
+from .models import (
     UrbanPlannerAction,
     UrbanPlannerObservation,
 )

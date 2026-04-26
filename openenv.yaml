@@ -7,8 +7,8 @@ spec_version: 1
 name: openenv-urban-planner
 type: mcp
 runtime: docker
-app: openenv_urban_planner/server/app.py
-port: 8000
+app: server/app.py
+port: 7860
 description: >
   Urban planning simulation for training LLMs on long-horizon spatial
   reasoning. Agent places zoning and infrastructure across a 16x16 grid

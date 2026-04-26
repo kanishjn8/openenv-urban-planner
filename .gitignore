@@ -65,3 +65,7 @@ docker-compose.override.yml
 
 plan.md
 /scripts/
+criteria.txt
+submission_audit.md
+train_grpo_v2 (3).ipynb
+train_grpo_t4_optimized.py

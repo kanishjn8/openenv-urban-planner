@@ -283,9 +283,15 @@ class UrbanPlannerEnvironment(MCPEnvironment):
         # Compute shaped reward for this tool call
         reward = self._shaped_reward(tool_name, arguments)
 
-        # Auto-advance season every STEPS_PER_SEASON tool calls
+        # Auto-advance season every STEPS_PER_SEASON tool calls.
+        # BUG-FIX: if the agent's tool was `advance_season`, the simulation has
+        # already advanced inside `_dispatch_tool` — auto-advancing again would
+        # double-step the season, halving the effective episode length and
+        # corrupting the planning_log's reward_delta interpretation.
         is_season_boundary = self._state.step_count % STEPS_PER_SEASON == 0
-        if is_season_boundary:
+        agent_already_advanced = (tool_name == "advance_season")
+
+        if is_season_boundary and not agent_already_advanced:
             season_result = self._sim.advance_season()
             self._state.season_count += 1
             self._state.season = self._sim.season
@@ -295,6 +301,15 @@ class UrbanPlannerEnvironment(MCPEnvironment):
             total_reward, breakdown = self._rubric.score(self._sim)
             self._last_rubric_scores = breakdown
             reward = total_reward  # rubric overrides shaped reward
+        elif agent_already_advanced:
+            # Agent advanced the season explicitly — keep the simulation's own
+            # season counter authoritative and use the rubric reward (it's the
+            # right signal for a season-boundary action).
+            self._state.season_count += 1
+            self._state.season = self._sim.season
+            total_reward, breakdown = self._rubric.score(self._sim)
+            self._last_rubric_scores = breakdown
+            reward = total_reward
         else:
             breakdown = self._last_rubric_scores
 

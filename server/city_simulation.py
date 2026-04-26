@@ -64,18 +64,26 @@ SCHOOL_CATCHMENT_RADIUS = 3
 FLOOD_EMERGENCY_COST = 300
 
 # Shaped reward values per tool call (used between season boundaries by the
-# environment to keep GRPO gradient signal alive)
+# environment to keep GRPO gradient signal alive).
+#
+# Design rule: only *constructive* actions get a positive base reward.  Pure
+# information-gathering tools (`get_*` / `query_*`) and `advance_season` give
+# zero — otherwise an agent learns to spam them for cheap reward without
+# actually planning anything (BUG-FIX #6).  The training-time `reward_fn`
+# overrides these with the rubric Δ, but external callers (HF Space, judges)
+# rely on these values, so they must not be exploitable.
 SHAPED_REWARDS: dict[str, float] = {
     "place_infrastructure": 0.05,
     "place_zone":           0.04,
-    "query_residents":      0.02,
-    "get_city_state":       0.01,
-    "get_budget_report":    0.01,
-    "get_district_report":  0.01,
-    "query_traffic_model":  0.01,
-    "get_event_log":        0.01,
     "allocate_budget":      0.01,
     "advance_season":       0.00,
+    # info / query tools — neutral, no exploit surface
+    "query_residents":      0.00,
+    "get_city_state":       0.00,
+    "get_budget_report":    0.00,
+    "get_district_report":  0.00,
+    "query_traffic_model":  0.00,
+    "get_event_log":        0.00,
 }
 
 # Shaped reward penalties
@@ -127,6 +135,9 @@ class CitySimulation:
         self.elevation: np.ndarray = np.zeros((16, 16))
         self.event_log: list[str] = []
         self.budget: int = 0
+        # initial_budget is recorded at reset and used by BudgetEfficiencyRubric
+        # (BUG-FIX #2: was previously approximated via `initial_population * 10`).
+        self.initial_budget: int = 0
         self.season: int = 0
         self.initial_population: int = 0
         self.rng: random.Random = random.Random(42)
@@ -178,6 +189,9 @@ class CitySimulation:
         self.grid_size = config.grid_size
         self.rng = random.Random(config.seed)
         self.budget = config.starting_budget
+        # Keep a copy of the starting budget for downstream rubric math.
+        # (BUG-FIX #2: BudgetEfficiencyRubric needs this as the spend baseline.)
+        self.initial_budget = config.starting_budget
         self.season = 0
         self.event_log = []
 
@@ -527,16 +541,33 @@ class CitySimulation:
     def _cascade_population(self, events: list[str]) -> None:
         """
         Cascade rule 2 — POPULATION GROWTH.
+
         - Grow +5% if congestion < 0.4 AND school_load < 0.8 AND flood_risk < 0.3.
         - Decline -8% if any threshold exceeded.
+
+        BUG-FIX #4: pre-school edge case.  If the city has no schools yet
+        (early game), the school_load constraint would otherwise force every
+        residential cell into permanent decline (school_load=1.0 sentinel for
+        "no school in catchment" > 0.8 threshold).  That made the city auto-
+        collapse around season 20 with zero agent action.  We now treat the
+        school constraint as inactive while no schools exist anywhere in the
+        city; once any school is built, normal load semantics kick in.
         """
+        any_schools_built = any(
+            "school" in cell.infrastructure for cell in self.grid.values()
+        )
+
         for cell in self.grid.values():
             if cell.zone_type != "residential" or cell.population == 0:
                 continue
 
+            school_ok = (
+                cell.school_load < SCHOOL_LOAD_GROWTH_THRESHOLD
+                or not any_schools_built
+            )
             conditions_good = (
                 cell.congestion < CONGESTION_GROWTH_THRESHOLD
-                and cell.school_load < SCHOOL_LOAD_GROWTH_THRESHOLD
+                and school_ok
                 and cell.flood_risk < FLOOD_RISK_GROWTH_THRESHOLD
             )
             if conditions_good:
@@ -626,14 +657,22 @@ class CitySimulation:
                         min_dist = min(min_dist, dist)
 
                 if not in_catchment or not schools:
-                    # No school nearby — very high load
-                    cell.school_load = 2.0
-                else:
-                    # Capacity per school = 100 students; load = students / capacity
-                    capacity = 100.0
-                    cell.school_load = round(students / capacity, 2)
+                    # No school nearby — high load (welfare drops to zero on
+                    # the school axis since it's capped at 1.0 in welfare
+                    # scoring), but we DO NOT trigger protests here: residents
+                    # can't protest a school that doesn't exist.
+                    # (BUG-FIX #4: was 2.0 — caused a per-residential-cell
+                    # PROTEST every season pre-school, draining $150/cell that
+                    # bankrupted the city before any agent action.)
+                    cell.school_load = 1.0
+                    continue
 
-                # Protest if overloaded
+                # Capacity per school = 100 students; load = students / capacity
+                capacity = 100.0
+                cell.school_load = round(students / capacity, 2)
+
+                # Protest only when an actual school is in catchment and is
+                # overcrowded — this is a real, agent-attributable failure.
                 if cell.school_load > SCHOOL_PROTEST_THRESHOLD:
                     events.append(
                         f"PROTEST at ({r},{c}): school overcrowding "
