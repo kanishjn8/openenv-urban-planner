@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import random
 
-from models import EpisodeConfig
+from ..models import EpisodeConfig
 
 
 class CurriculumManager:

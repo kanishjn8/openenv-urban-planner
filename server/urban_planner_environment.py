@@ -33,14 +33,14 @@ from fastmcp import FastMCP
 from openenv.core.env_server.mcp_environment import MCPEnvironment
 from openenv.core.env_server.types import State
 
-from models import (
+from ..models import (
     EpisodeConfig,
     PlanningEntry,
     UrbanPlannerObservation,
     UrbanPlannerState,
     ZoneCell,
 )
-from server.city_simulation import (
+from .city_simulation import (
     CitySimulation,
     SHAPED_REWARDS,
     SHAPED_PENALTY_INDUSTRIAL_NEAR_RESIDENTIAL,
@@ -48,8 +48,8 @@ from server.city_simulation import (
     SHAPED_PENALTY_POLICY_VIOLATION,
     STEPS_PER_SEASON,
 )
-from server.curriculum import CurriculumManager
-from server.rubric import urban_planner_rubric
+from .curriculum import CurriculumManager
+from .rubric import urban_planner_rubric
 
 # Maximum number of planning log entries to include in observations
 PLANNING_LOG_MAX_ENTRIES = 8

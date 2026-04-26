@@ -12,7 +12,7 @@
 
 from __future__ import annotations
 
-from server.city_simulation import CitySimulation
+from .city_simulation import CitySimulation
 
 
 # ── Base class (lightweight, no openenv dependency needed for scoring) ───────

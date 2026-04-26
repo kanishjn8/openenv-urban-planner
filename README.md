@@ -194,7 +194,9 @@ openenv_urban_planner/
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
 uv sync
-uv run uvicorn server.app:app --host 0.0.0.0 --port 7860
+uv run server   # starts uvicorn on :7860 via the [project.scripts] entry point
+# or, equivalently:
+# uv run uvicorn openenv_urban_planner.server.app:app --host 0.0.0.0 --port 7860
 ```
 
 ### Run the tests (61 tests)
@@ -206,13 +208,6 @@ uv run pytest tests/ -q
 ### Train (Colab T4)
 
 Open `[notebooks/train_grpo.ipynb](./notebooks/train_grpo.ipynb)` in Colab → Runtime → GPU (T4) → Run All. The notebook installs deps, points at this Space, builds the dataset, runs 200 GRPO steps, and saves both reward plots into `assets/plots/`.
-
-### Train (any GPU)
-
-```bash
-# repo must be on PYTHONPATH so `from server.* import ...` resolves
-PYTHONPATH=. python scripts/train_grpo_t4_optimized.py
-```
 
 ### Use the deployed Space as a client
 

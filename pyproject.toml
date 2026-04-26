@@ -12,6 +12,11 @@ dependencies = [
     "fastapi>=0.110.0",
 ]
 
+[project.scripts]
+# OpenEnv multi-mode deployment entry point — required by `openenv validate`.
+# Allows `uv run server` to launch the same FastAPI app the Dockerfile runs.
+server = "openenv_urban_planner.server.app:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0.0",
@@ -19,8 +24,29 @@ dev = [
     "httpx>=0.27.0",
 ]
 
+# This project uses a flat layout where the repo directory itself IS the
+# `openenv_urban_planner` Python package (the directory is named that way
+# and contains `__init__.py`). Tests therefore need the *parent* of the
+# repo on sys.path so `import openenv_urban_planner` resolves to the repo dir.
+[tool.pytest.ini_options]
+pythonpath = [".."]
+testpaths = ["tests"]
+
+# Hatch wheel build: include the entire flat layout under the
+# `openenv_urban_planner` distribution package via force-include.
+# (We can't use `packages = ["openenv_urban_planner"]` because there is no
+# subdirectory of that name; the *repo root* itself is the package.)
 [tool.hatch.build.targets.wheel]
-packages = ["openenv_urban_planner"]
+bypass-selection = true
+# In dev-mode (editable install), put the *parent* of this repo on sys.path
+# so that `import openenv_urban_planner` resolves to this directory itself.
+dev-mode-dirs = [".."]
+
+[tool.hatch.build.targets.wheel.force-include]
+"__init__.py" = "openenv_urban_planner/__init__.py"
+"models.py" = "openenv_urban_planner/models.py"
+"client.py" = "openenv_urban_planner/client.py"
+"server" = "openenv_urban_planner/server"
 
 [build-system]
 requires = ["hatchling"]
