@@ -13,10 +13,10 @@ pinned: false
 > An OpenEnv environment that turns urban planning into an LLM tool-call trajectory.
 > Train a language model to plan a city and watch the city fight back.
 
-**[🤗 HF Space](https://huggingface.co/spaces/kanishjn8/openenv-urban-planner)** ·
-**[📓 Colab Notebook](https://colab.research.google.com/drive/1YV9tXQCfEMTkcKc34h5DSIPkPlGxZueA)** ·
-**[📝 Blog post](./blog.md)** ·
-**[License: MIT](#license)**
+- [🤗 HF Space](https://huggingface.co/spaces/kanishjn8/openenv-urban-planner)
+- [📓 Colab Notebook](https://colab.research.google.com/drive/1YV9tXQCfEMTkcKc34h5DSIPkPlGxZueA)
+- [📝 Blog post](./blog.md)
+- [License: MIT](#license)
 
 ---
 
