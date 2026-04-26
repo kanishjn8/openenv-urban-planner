@@ -237,7 +237,7 @@ with UrbanPlannerEnv(base_url="https://kanishjn8-openenv-urban-planner.hf.space"
 - 📓 **Training notebook (in repo):** [notebooks/train_grpo.ipynb](./notebooks/train_grpo.ipynb)
 - 📓 **Training notebook (Colab):** [Open in Colab](https://colab.research.google.com/drive/1YV9tXQCfEMTkcKc34h5DSIPkPlGxZueA)
 - 📝 **Blog / writeup:** [blog.md](./blog.md)
-- 🔬 **OpenEnv core:** `[openenv-core]` v0.2.3]([https://pypi.org/project/openenv-core/](https://pypi.org/project/openenv-core/)) · [GitHub](https://github.com/meta-pytorch/OpenEnv)
+- 🔬 **OpenEnv core:** [openenv-core v0.2.3](https://pypi.org/project/openenv-core/) · [GitHub](https://github.com/meta-pytorch/OpenEnv)
 
 ## License
 
