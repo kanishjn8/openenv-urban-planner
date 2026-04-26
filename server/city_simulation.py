@@ -65,13 +65,7 @@ FLOOD_EMERGENCY_COST = 300
 
 # Shaped reward values per tool call (used between season boundaries by the
 # environment to keep GRPO gradient signal alive).
-#
-# Design rule: only *constructive* actions get a positive base reward.  Pure
-# information-gathering tools (`get_*` / `query_*`) and `advance_season` give
-# zero — otherwise an agent learns to spam them for cheap reward without
-# actually planning anything (BUG-FIX #6).  The training-time `reward_fn`
-# overrides these with the rubric Δ, but external callers (HF Space, judges)
-# rely on these values, so they must not be exploitable.
+
 SHAPED_REWARDS: dict[str, float] = {
     "place_infrastructure": 0.05,
     "place_zone":           0.04,
@@ -136,7 +130,6 @@ class CitySimulation:
         self.event_log: list[str] = []
         self.budget: int = 0
         # initial_budget is recorded at reset and used by BudgetEfficiencyRubric
-        # (BUG-FIX #2: was previously approximated via `initial_population * 10`).
         self.initial_budget: int = 0
         self.season: int = 0
         self.initial_population: int = 0
@@ -190,7 +183,6 @@ class CitySimulation:
         self.rng = random.Random(config.seed)
         self.budget = config.starting_budget
         # Keep a copy of the starting budget for downstream rubric math.
-        # (BUG-FIX #2: BudgetEfficiencyRubric needs this as the spend baseline.)
         self.initial_budget = config.starting_budget
         self.season = 0
         self.event_log = []
@@ -661,9 +653,6 @@ class CitySimulation:
                     # the school axis since it's capped at 1.0 in welfare
                     # scoring), but we DO NOT trigger protests here: residents
                     # can't protest a school that doesn't exist.
-                    # (BUG-FIX #4: was 2.0 — caused a per-residential-cell
-                    # PROTEST every season pre-school, draining $150/cell that
-                    # bankrupted the city before any agent action.)
                     cell.school_load = 1.0
                     continue
 

@@ -73,8 +73,12 @@ class UrbanPlannerEnvironment(MCPEnvironment):
         is_concurrent: True — each session gets its own city instance.
     """
 
-    # Session-isolated: multiple agents can connect simultaneously
-    is_concurrent = True
+    # Session-isolated: multiple agents can connect simultaneously.
+    # OpenEnv ≥ 0.2.x reads SUPPORTS_CONCURRENT_SESSIONS (the old `is_concurrent`
+    # attribute was silently dropped in 0.2.0).  Without this flag set to True,
+    # `create_app(..., max_concurrent_envs=N)` raises ConcurrencyConfigurationError
+    # for N > 1 — which breaks multi-worker GRPO training.
+    SUPPORTS_CONCURRENT_SESSIONS: bool = True
 
     def __init__(self) -> None:
         """
@@ -284,10 +288,6 @@ class UrbanPlannerEnvironment(MCPEnvironment):
         reward = self._shaped_reward(tool_name, arguments)
 
         # Auto-advance season every STEPS_PER_SEASON tool calls.
-        # BUG-FIX: if the agent's tool was `advance_season`, the simulation has
-        # already advanced inside `_dispatch_tool` — auto-advancing again would
-        # double-step the season, halving the effective episode length and
-        # corrupting the planning_log's reward_delta interpretation.
         is_season_boundary = self._state.step_count % STEPS_PER_SEASON == 0
         agent_already_advanced = (tool_name == "advance_season")
 

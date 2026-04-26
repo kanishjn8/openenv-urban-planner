@@ -38,10 +38,6 @@ class ConnectivityRubric(Rubric):
     cell is "connected" iff at least one of its 4-neighbors is on this road
     network (i.e. it has direct road access).
 
-    BUG-FIX #3: previous implementation let residential cells act as bridge
-    nodes during BFS.  That meant a chain of residential cells with NO roads
-    counted as connected, which let an agent score 0.25 of total reward by
-    spamming residential alone — completely defeating the metric.
     """
 
     def score(self, sim: CitySimulation) -> float:
@@ -175,11 +171,6 @@ class BudgetEfficiencyRubric(Rubric):
     Bounded to [0, 1].  An untouched budget gives full welfare credit; spending
     the whole budget halves it.  Negative budget (over-draft) is clamped.
 
-    BUG-FIX #2: previous implementation used `initial_population * 10` as the
-    spend baseline (a leftover proxy from an earlier version).  That made
-    efficiency depend on **population size** rather than **budget consumed**,
-    which is the wrong semantics.  We now use the actual `initial_budget`
-    recorded by the simulation at reset.
     """
 
     def __init__(self) -> None:
@@ -208,11 +199,6 @@ class LongHorizonCoherenceRubric(Rubric):
       C. high-density residential with no road access (at the cell itself or
          any neighbor) → contradiction (per-cell)
 
-    BUG-FIX #5: rule C used a fragile dedup trick — `if (nr,nc) == _neighbors(r,c)[0]`
-    inside the inner neighbor loop — which only worked while `_neighbors`
-    returned a stable order and never skipped boundaries.  We now evaluate
-    rule C once per cell, outside the inner loop, where it semantically
-    belongs.
     """
 
     # Adjacency pairs that count as contradictions (kept for reference / tests)

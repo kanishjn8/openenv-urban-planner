@@ -5,7 +5,7 @@
 # This is the file referenced in openenv.yaml and the Dockerfile CMD.
 #
 # Start locally with:
-#   uv run uvicorn openenv_urban_planner.server.app:app --host 0.0.0.0 --port 8000
+#   uv run uvicorn server.app:app --host 0.0.0.0 --port 7860
 # =============================================================================
 
 from openenv.core.env_server import create_app

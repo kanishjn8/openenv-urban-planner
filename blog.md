@@ -1,6 +1,6 @@
 # A City That Fights Back: Training an LLM to Plan Cities with GRPO on a Colab T4
 
-> *How we built `openenv_urban_planner` — an OpenEnv environment that turns urban planning into an LLM tool-call trajectory — and trained Qwen2.5-3B against it on a free Colab GPU.*
+> *How we built* `openenv_urban_planner`*, an OpenEnv environment that turns urban planning into an LLM tool-call trajectory, and trained Qwen2.5-3B against it on a free Colab GPU.*
 
 ---
 
@@ -8,7 +8,7 @@
 
 Pick any benchmark on the LLM-eval leaderboard right now and you'll find one common gap: **causal reasoning over long horizons under delayed, multi-objective reward**. Models can answer trivia, write code, even navigate a single web form, but they fall apart when "the right move now" depends on a consequence that won't show up for ten steps.
 
-Urban planning is the cleanest stress-test for that capability we could think of. Every decision — *zone this block residential, run a road through here, build a school over there* — sets off cascades:
+Urban planning is the cleanest stress-test for that capability we could think of. Every decision, *zone this block residential, run a road through here, build a school over there*, sets off cascades:
 
 - traffic load on adjacent cells,
 - population growth or decline,
@@ -55,21 +55,23 @@ Each `advance_season` runs five rules in order:
 
 ### The five rubrics
 
-The reward signal is **deliberately tense** — every component pulls against another:
+The reward signal is **deliberately tense**, every component pulls against another:
 
-| Component | What it rewards | What it costs |
-|---|---|---|
-| **Connectivity** (0.25) | residential cells reachable via roads from a commercial zone | road budget, contradicts efficiency |
-| **Welfare** (0.30) | low congestion + low school load + low flood risk | requires defensive spend, contradicts economic |
-| **Economic** (0.20) | commercial density adjacent to residential | adds traffic, contradicts welfare |
-| **Efficiency** (0.10) | welfare gain per $ spent | contradicts connectivity / coherence |
-| **Coherence** (0.15) | no contradictory adjacencies (industrial-school, etc.) + policy compliance | constrains the action space |
+
+| Component               | What it rewards                                                            | What it costs                                  |
+| ----------------------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
+| **Connectivity** (0.25) | residential cells reachable via roads from a commercial zone               | road budget, contradicts efficiency            |
+| **Welfare** (0.30)      | low congestion + low school load + low flood risk                          | requires defensive spend, contradicts economic |
+| **Economic** (0.20)     | commercial density adjacent to residential                                 | adds traffic, contradicts welfare              |
+| **Efficiency** (0.10)   | welfare gain per $ spent                                                   | contradicts connectivity / coherence           |
+| **Coherence** (0.15)    | no contradictory adjacencies (industrial-school, etc.) + policy compliance | constrains the action space                    |
+
 
 This makes the rubric **hard to game**. Any monomania (spam commercial / spam roads / spam green) tanks at least one other dimension.
 
 ### Two design tricks worth stealing
 
-- **`planning_log` injected into every observation.** A server-maintained ring of the last 8 `(season, action, consequence, reward Δ)` entries. The agent never has to call a `get_history()` tool — its own recent past is just *there*. This directly addresses the long-horizon context problem: instead of forcing the model to remember things across hundreds of input tokens, we hand it a compact, structured past.
+- `planning_log` injected into every observation. A server-maintained ring of the last 8 `(season, action, consequence, reward)` entries. The agent never has to call a `get_history()` tool, its own recent past is just *there*. This directly addresses the long-horizon context problem: instead of forcing the model to remember things across hundreds of input tokens, we hand it a compact, structured past.
 - **Adaptive curriculum.** After each episode, whichever rubric components scored ≥ 0.7 get *escalated* in the next episode. Mastering connectivity adds a river barrier. Mastering welfare triggers a population surge. The city actually fights back.
 
 ## 3 · Training: GRPO + LoRA on a Colab T4
@@ -107,7 +109,7 @@ grpo_config = GRPOConfig(
 )
 ```
 
-And the **reward function** — the part that actually decides whether learning happens:
+And the **reward function**, the part that actually decides whether learning happens:
 
 ```python
 def reward_fn(completions, seed=None, history=None, **kw):
@@ -140,20 +142,22 @@ Two design points to note:
 
 The first version of the script tried to load Qwen2.5-7B + GRPO + 6 generations + 1024 seq_len. T4 had ~30 MB free at peak. Three things fixed this:
 
-| Fix | VRAM saved |
-|---|---|
-| Drop to **Qwen2.5-3B** | ~3 GB |
-| `MAX_SEQ_LENGTH = 640` (was 1024) | ~1 GB activations |
-| `beta = 0.0` ⇒ TRL skips the reference model | **~3.5 GB** |
 
-`beta = 0.0` was the single biggest win. By default GRPO loads a frozen copy of your base model to compute a KL penalty — for a 3B model in 4-bit that's ~3.5 GB of dead weight on a T4. With `beta = 0` you opt out of the KL term entirely and rely on PPO-style epsilon clipping for stability. We also added `os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"` which recovers another ~0.5 GB by letting the allocator reuse fragmented blocks.
+| Fix                                          | VRAM saved        |
+| -------------------------------------------- | ----------------- |
+| Drop to **Qwen2.5-3B**                       | ~3 GB             |
+| `MAX_SEQ_LENGTH = 640` (was 1024)            | ~1 GB activations |
+| `beta = 0.0` ⇒ TRL skips the reference model | **~3.5 GB**       |
+
+
+`beta = 0.0` was the single biggest win. By default GRPO loads a frozen copy of your base model to compute a KL penalty, for a 3B model in 4-bit that's ~3.5 GB of dead weight on a T4. With `beta = 0` you opt out of the KL term entirely and rely on PPO-style epsilon clipping for stability. We also added `os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"` which recovers another ~0.5 GB by letting the allocator reuse fragmented blocks.
 
 ### Problem 2 — Reward plateaued around 0
 
 The first reward function looked sensible but produced almost no learning. We logged the per-step reward distribution and found:
 
 - The reward range was a tight `[-0.30, +0.45]` band.
-- The per-completion variance was almost entirely *format* variance — the rubric was the same for every completion in the group because the rubric only fires at season boundaries, every 3 tool calls. So 2 out of every 3 completions got essentially the same reward.
+- The per-completion variance was almost entirely *format* variance, the rubric was the same for every completion in the group because the rubric only fires at season boundaries, every 3 tool calls. So 2 out of every 3 completions got essentially the same reward.
 - `reward_std` collapsed to ≈ 0 and GRPO advantages went with it.
 
 Three changes turned this around:
@@ -176,7 +180,7 @@ Reusing one env (`reset()` + replay prefix) and bumping `max_grad_norm` to `1.0`
 Building the training stack uncovered a handful of environment bugs that would have invalidated any reward we measured. The biggest one:
 
 - **The `advance_season` tool double-stepped.** When the agent called `advance_season()` on the 3rd tool call, the environment dispatched it (advancing the season once) and then *also* applied the auto-advance for the season-boundary check (advancing the season *again*). The fix is a one-liner in `_step_impl`: skip the auto-advance if the tool the agent just called is already `advance_season`.
-- The `BudgetEfficiencyRubric` used `initial_population × 10` instead of `initial_budget` as its spending baseline (a leftover proxy from an earlier version) — fixed to use the actual `state.initial_budget`.
+- The `BudgetEfficiencyRubric` used `initial_population × 10` instead of `initial_budget` as its spending baseline (a leftover proxy from an earlier version), fixed to use the actual `state.initial_budget`.
 - The `ConnectivityRubric` BFS treated residential cells as bridge nodes, so a string of residential cells with no roads counted as "connected." Restricting traversal to road cells produces the score the design intended.
 
 These fixes go in *before* the next training run; they're documented in the audit at the top of the codebase.
@@ -200,16 +204,15 @@ The qualitative behavior is the satisfying part. The trained model:
 
 ## 6 · What we'd do next
 
-- **Replace random teacher rollouts** with [a small SFT warm-start](./train_lora_local_small.py) using domain heuristics — a cheap way to lift the starting reward off the floor.
 - **Verifier-shaped rewards.** Pull `query_residents` and `get_budget_report` outputs into the reward as feature signals (e.g. *did the agent's action remove a "Residents complain about traffic" message?*).
 - **Cross-difficulty curriculum eval.** Right now we eval at fixed difficulty 1; the curriculum manager already supports difficulty 2-5 for the next experiment.
 - **Train a 7B model** on a single A100 to see how far the architecture scales.
 
 ## 7 · Try it yourself
 
-- 🤗 **HF Space:** [huggingface.co/spaces/kanishjn8/openenv_urban_planner](https://huggingface.co/spaces/kanishjn8/openenv_urban_planner)
-- 📓 **Colab notebook:** [`train_grpo_v2 (3).ipynb`](./train_grpo_v2%20(3).ipynb) — open in Colab, set runtime to T4 GPU, Run All.
-- 📁 **Code:** see `server/`, `models.py`, and `train_grpo_t4_optimized.py` in this repo.
+- 🤗 **HF Space:** [huggingface.co/spaces/kanishjn8/openenv-urban-planner](https://huggingface.co/spaces/kanishjn8/openenv-urban-planner)
+- 📓 **Colab notebook:** `[notebooks/train_grpo.ipynb](./notebooks/train_grpo.ipynb)` - open in Colab, set runtime to T4 GPU, Run All.
+- 📁 **Code:** see `[server/](./server)`, `[models.py](./models.py)`, and `[client.py](./client.py)` in this repo.
 
 We deliberately kept the environment self-contained (pure Python + numpy, no external services) so it's easy to fork and modify. If you build a new sub-rubric or cascade rule we'd love to see it.
 
