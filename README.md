@@ -115,18 +115,17 @@ The full training pipeline lives in `[notebooks/train_grpo.ipynb](./notebooks/tr
 
 ### Training reward curve (200 steps, T4 Colab)
 
-Training reward curve
+![Training reward curve](assets/plots/reward_curve.png)
 
-*Mean GRPO reward per step (blue, smoothed w=5) over 200 training steps. Reward climbs from ~−0.2 at initialization to a stable band around +0.10–0.15 by step 150. The lower panel shows reward σ, it stays in the 0.05–0.30 range throughout, confirming the GRPO group never collapsed (σ = 0 would mean the policy became deterministic and gradients vanished).*
+*Mean GRPO reward per step (blue, smoothed w=5) over 200 training steps. Reward climbs from ~−0.2 at initialization to a stable band around +0.10–0.15 by step 150. The lower panel shows reward σ — it stays in the 0.05–0.30 range throughout, confirming the GRPO group never collapsed (σ = 0 would mean the policy became deterministic and gradients vanished).*
 
 ### Trained agent vs random baseline (seed 999, 40 steps)
 
-Trained vs random baseline
+![Trained vs random baseline](assets/plots/reward_comparison.png)
 
 *Head-to-head on identical city seed 999. **GRPO-trained agent (green, mean = +0.524)** vs **random baseline (red, mean = +0.262)**. The trained agent scores 2× higher on average and maintains a consistent upper trajectory while the random agent oscillates wildly.*
 
 ### Before / after summary
-
 
 |                                  | Random agent       | GRPO-trained agent          |
 | -------------------------------- | ------------------ | --------------------------- |
@@ -134,6 +133,14 @@ Trained vs random baseline
 | Reward trajectory                | Erratic (σ ≈ 0.18) | Stable (σ ≈ 0.05)           |
 | Reward σ during training         | —                  | 0.05–0.30 (never collapses) |
 
+### Why the training loss is zero
+
+The training loss reported by TRL's `GRPOTrainer` is a **policy-gradient surrogate loss**, not a cross-entropy language-modelling loss. It is expected to be zero (or fluctuate near zero) for two compounding reasons:
+
+1. **`beta = 0.0`** — we disabled the KL-divergence penalty term entirely to save ~3.5 GB VRAM on the T4. With `beta = 0`, the only loss term is the clipped PPO objective `L_CLIP`. When the clipping threshold `ε = 0.2` is not exceeded — which is common in the early steps when the policy hasn't moved far from initialization — `L_CLIP` evaluates to exactly 0.
+2. **Group-relative advantage normalization** — GRPO normalizes advantages within each generation group to zero mean. In steps where all four completions happen to produce similar rewards (e.g. all parse failures at initialization), the normalized advantages are all ≈ 0 and the gradient vanishes.
+
+**The reward curve is the correct signal to watch**, not the loss. A flat loss with a rising reward curve is exactly the expected GRPO training signature. The upward reward trend and non-zero reward σ throughout training are the evidence that learning is happening.
 
 ### Sample tool calls produced after training
 
