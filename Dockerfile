@@ -11,12 +11,6 @@
 #      `openenv-urban-planner` package via hatch's force-include + dev-mode-dirs).
 #   3. Starts uvicorn against `openenv_urban_planner.server.app:app` on port 7860.
 #
-# Why `openenv_urban_planner.server.app:app` (not `server.app:app`)?
-#   The repo directory itself is named `openenv_urban_planner`. After `uv sync`
-#   installs the project in editable mode with `dev-mode-dirs = [".."]`, the
-#   *parent* of /app (i.e. `/`) is on sys.path, so `import openenv_urban_planner`
-#   resolves to /app/. The `server/` modules use *relative* imports
-#   (`from ..models`, `from .city_simulation`) which require the package context.
 # =============================================================================
 
 FROM python:3.12-slim
