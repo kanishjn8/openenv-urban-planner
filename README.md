@@ -1,11 +1,11 @@
 ---
-
-## title: OpenEnv Urban Planner
+title: OpenEnv Urban Planner
 emoji: 🏙️
 colorFrom: indigo
 colorTo: blue
 sdk: docker
 pinned: false
+---
 
 # OpenEnv Urban Planner 🏙️
 
