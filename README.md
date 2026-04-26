@@ -1,12 +1,11 @@
 ---
-
-## title: OpenEnv Urban Planner
-
+title: OpenEnv Urban Planner
 emoji: 🏙️
 colorFrom: indigo
 colorTo: blue
 sdk: docker
 pinned: false
+---
 
 # OpenEnv Urban Planner 🏙️
 
@@ -17,8 +16,6 @@ pinned: false
 - [📓 Colab Notebook](https://colab.research.google.com/drive/1YV9tXQCfEMTkcKc34h5DSIPkPlGxZueA)
 - [📝 Blog post](./blog.md)
 - [License: MIT](#license)
-
----
 
 ## TL;DR
 
