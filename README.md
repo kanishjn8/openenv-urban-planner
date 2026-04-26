@@ -1,11 +1,11 @@
 ---
-title: OpenEnv Urban Planner
+
+## title: OpenEnv Urban Planner
 emoji: 🏙️
 colorFrom: indigo
 colorTo: blue
 sdk: docker
 pinned: false
----
 
 # OpenEnv Urban Planner 🏙️
 
@@ -19,7 +19,7 @@ pinned: false
 
 ## TL;DR
 
-A 16×16 city sim with five cascading physical systems (traffic, population, floods, schools, budget), exposed as 10 MCP tools. The agent acts as a city planner over 24 seasons; rewards come from a 5-component rubric that pulls in *opposing* directions so the agent can't game any single metric.
+A 16×16 city sim with five cascading physical systems (traffic, population, floods, schools, budget), exposed as 10 MCP tools. The agent acts as a city planner over 24 seasons, rewards come from a 5-component rubric that pulls in *opposing* directions so the agent can't game any single metric.
 
 We train **Qwen2.5-3B-Instruct** with **GRPO + LoRA on a Colab T4** and show a measurable upward reward curve and a head-to-head **2× win** against a random baseline (mean reward +0.524 vs +0.262 on seed 999).
 
@@ -69,7 +69,7 @@ None use OpenEnv's reserved names (`reset`, `step`, `state`, `close`).
 ### Hidden information & memory injection
 
 - **Fog-of-war:** ~30 % of cells are hidden at reset; only revealed by adjacent infra, district queries, or cascade events.
-- `**planning_log`:** server-maintained ring buffer of the last 8 `(season, action, consequence, reward Δ)` entries, injected into every observation. The agent doesn't have to spend tool calls on memory.
+- `planning_log`: server-maintained ring buffer of the last 8 `(season, action, consequence, reward Δ)` entries, injected into every observation. The agent doesn't have to spend tool calls on memory.
 - **Policy constraints:** charter-style rules (e.g. *"no industrial within 2 cells of residential"*) injected at reset. Violations dock the coherence rubric.
 
 ### Adaptive curriculum
