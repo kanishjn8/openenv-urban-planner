@@ -16,6 +16,7 @@ pinned: false
 - [📓 Colab Notebook](https://colab.research.google.com/drive/1YV9tXQCfEMTkcKc34h5DSIPkPlGxZueA)
 - [📝 Blog post](./blog.md)
 - [License: MIT](#license)
+- [🎥 YouTube Demo](https://youtu.be/-DuUAKjjJGo)
 
 ## TL;DR
 
